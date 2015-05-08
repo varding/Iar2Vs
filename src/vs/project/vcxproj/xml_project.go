@@ -1,6 +1,7 @@
 package vcxproj
 
 import (
+	"bytes"
 	"comm"
 	"encoding/xml"
 	"fmt"
@@ -48,7 +49,10 @@ func (this *Project) toXml() []byte {
 		fmt.Println(err)
 		return nil
 	}
-	return data
+	buf := bytes.NewBuffer(nil)
+	buf.WriteString("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n")
+	buf.Write(data)
+	return buf.Bytes()
 }
 
 ////prj guid
@@ -64,7 +68,7 @@ func (this *Project) add_include(cfgs []*comm.Config) {
 	for _, c := range cfgs {
 		inc := &ProInclude{}
 		inc.Condition = fmt.Sprintf("'$(Configuration)|$(Platform)'=='%s|Win32'", c.Name)
-		fmt.Println(inc.Condition)
+		//fmt.Println(inc.Condition)
 		inc.IncludePath = strings.Join(c.Include, ";")
 		inc.LinkIncremental = true
 		this.PropertyGroup = append(this.PropertyGroup, inc)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"comm"
 	"fmt"
 	"github.com/nu7hatch/gouuid"
 	iar_prj "iar/project"
@@ -53,15 +54,20 @@ func convert(eww_file_name string) {
 		//解析iar project
 		gs, cfgs := iar_prj.Unmarshal(prj_abs_name)
 
+		//全部转成相对路径
+		convert_rel_path(gs, cfgs, vs_path)
+
+		//生成filter文件内容
 		xml_filter_str := filter.Marshal(gs, cfgs)
 
 		//sln和工程都要用到
 		prj_guid, _ := uuid.NewV4()
+		//生成vcxproj文件内容
 		xml_gs_str := vcxproj.Marshal(file_name, prj_guid.String(), gs, cfgs)
 
 		//保存filter
 		ioutil.WriteFile(fmt.Sprintf("%s.vcxproj.filters", filepath.Join(vs_path, file_name)), xml_filter_str, os.ModePerm)
-		//保存proj
+		//保存vcxproj
 		ioutil.WriteFile(fmt.Sprintf("%s.vcxproj", filepath.Join(vs_path, file_name)), xml_gs_str, os.ModePerm)
 
 		vs_sln.AddProject(file_name, prj_guid.String(), cfgs)
@@ -69,5 +75,36 @@ func convert(eww_file_name string) {
 
 	eww_name := filepath.Base(eww_file_name)
 	s := strings.Split(eww_name, ".")
-	ioutil.WriteFile(fmt.Sprintf("%s.sln", filepath.Join(vs_path, s[0])), vs_sln.Data(), os.ModePerm)
+
+	sln_name := fmt.Sprintf("%s.sln", filepath.Join(vs_path, s[0]))
+	ioutil.WriteFile(sln_name, vs_sln.Data(), os.ModePerm)
+
+	//创建快捷方式
+	// sln_link_name := fmt.Sprintf("%s.sln", filepath.Join(eww_path, s[0]))
+
+	// err := os.Symlink(sln_name, sln_link_name)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+}
+
+func convert_rel_path(gs []*comm.Group, cfgs []*comm.Config, vs_path string) {
+	//所有的代码文件路径全部改成相对的，这个防止工程文件移动位置或者复制一份新的时候vs2010还是引用了原来的位置
+	for _, g := range gs {
+		for i := 0; i < len(g.Files); i++ {
+			g.Files[i], _ = filepath.Rel(vs_path, g.Files[i])
+			//fmt.Println(g.Files[i])
+		}
+	}
+
+	prj_volume_name := filepath.VolumeName(vs_path)
+	//include文件有选择的改路径：同一个盘符下的就改
+	for _, c := range cfgs {
+		for i := 0; i < len(c.Include); i++ {
+			if filepath.VolumeName(c.Include[i]) == prj_volume_name {
+				c.Include[i], _ = filepath.Rel(vs_path, c.Include[i])
+			}
+		}
+	}
+
 }

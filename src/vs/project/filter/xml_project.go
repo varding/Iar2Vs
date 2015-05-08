@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"path/filepath"
@@ -23,7 +24,10 @@ func (this *Project) toXml() []byte {
 		fmt.Println(err)
 		return nil
 	}
-	return data
+	buf := bytes.NewBuffer(nil)
+	buf.WriteString("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n")
+	buf.Write(data)
+	return buf.Bytes()
 }
 
 //
