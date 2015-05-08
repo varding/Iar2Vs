@@ -11,9 +11,11 @@ import (
 	"strings"
 	"vs/project/filter"
 	"vs/project/vcxproj"
+	"vs/sln"
 )
 
 func convert(eww_file_name string) {
+	var vs_sln sln.Sln
 
 	fmt.Printf("use \"%s\" as workspace name\n", eww_file_name)
 
@@ -61,5 +63,11 @@ func convert(eww_file_name string) {
 		ioutil.WriteFile(fmt.Sprintf("%s.vcxproj.filters", filepath.Join(vs_path, file_name)), xml_filter_str, os.ModePerm)
 		//保存proj
 		ioutil.WriteFile(fmt.Sprintf("%s.vcxproj", filepath.Join(vs_path, file_name)), xml_gs_str, os.ModePerm)
+
+		vs_sln.AddProject(file_name, prj_guid.String(), cfgs)
 	}
+
+	eww_name := filepath.Base(eww_file_name)
+	s := strings.Split(eww_name, ".")
+	ioutil.WriteFile(fmt.Sprintf("%s.sln", filepath.Join(vs_path, s[0])), vs_sln.Data(), os.ModePerm)
 }
