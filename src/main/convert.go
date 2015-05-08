@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/nu7hatch/gouuid"
 	iar_prj "iar/project"
 	iar_ws "iar/workspace"
 	"io/ioutil"
@@ -41,17 +42,20 @@ func convert(eww_file_name string) {
 		fmt.Printf("iar prj path:%s\n", prj_path)
 		os.Chdir(prj_path)
 
-		//解析iar project
-		gs, cfgs := iar_prj.Unmarshal(prj_abs_name)
-
-		xml_filter_str := filter.Marshal(gs, cfgs)
-		xml_gs_str := vcxproj.Marshal(gs, cfgs)
-
 		//获取工程文件名
 		file_name := filepath.Base(prj_file_name)
 		//去除扩展名
 		s := strings.Split(file_name, ".")
 		file_name = s[0]
+
+		//解析iar project
+		gs, cfgs := iar_prj.Unmarshal(prj_abs_name)
+
+		xml_filter_str := filter.Marshal(gs, cfgs)
+
+		//sln和工程都要用到
+		prj_guid, _ := uuid.NewV4()
+		xml_gs_str := vcxproj.Marshal(file_name, prj_guid.String(), gs, cfgs)
 
 		//保存filter
 		ioutil.WriteFile(fmt.Sprintf("%s.vcxproj.filters", filepath.Join(vs_path, file_name)), xml_filter_str, os.ModePerm)
