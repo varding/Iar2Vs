@@ -15,6 +15,7 @@ type Project struct {
 	Version       string              `xml:"fileVersion"`
 	Configuration []ConfigurationItem `xml:"configuration"`
 	Group         []GroupItem         `xml:"group"`
+	File          []FileName          `xml:"file"` //file可以不属于group直接属于project
 	//private
 	out_gs  []*comm.Group
 	out_cfg []*comm.Config
@@ -23,9 +24,16 @@ type Project struct {
 //print functions below
 func (this *Project) extract() ([]*comm.Group, []*comm.Config) {
 	this.extract_configuration()
-	this.extract_group("", this.Group)
+	this.extract_group("源文件", this.Group) //加个顶层的目录，这样直接隶属*ewp的<project>节点下的file也有filter
 
-	//change rel path of files to abs path
+	//先把project的file解析出来，这段转换代码从this.extract_group搬过来
+	files := make([]string, len(this.File))
+	for i, f := range this.File {
+		files[i] = f.Name
+	}
+	this.out_gs = append(this.out_gs, &comm.Group{"源文件", files}) //project节点下的文件直接放到"源文件"根目录
+
+	//.c,.h文件全部改成相对路径
 	for _, gs := range this.out_gs {
 		for i := 0; i < len(gs.Files); i++ {
 			//os.Chdir changed current dir to $proj_dir$,so use "." instead
@@ -38,6 +46,21 @@ func (this *Project) extract() ([]*comm.Group, []*comm.Config) {
 			gs.Files[i] = p
 		}
 	}
+
+	//include也要去掉$proj_dir$
+	for _, cfgs := range this.out_cfg {
+		for i := 0; i < len(cfgs.Include); i++ {
+			//os.Chdir changed current dir to $proj_dir$,so use "." instead
+			f := strings.Replace(cfgs.Include[i], "$PROJ_DIR$", ".", -1)
+			p, err := filepath.Abs(f) //to abs path
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			cfgs.Include[i] = p
+		}
+	}
+
 	return this.out_gs, this.out_cfg
 }
 
