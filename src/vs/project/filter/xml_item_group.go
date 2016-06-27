@@ -3,6 +3,7 @@ package filter
 import (
 	"fmt"
 	"github.com/nu7hatch/gouuid"
+	"strings"
 )
 
 type ItemGroup struct {
@@ -21,7 +22,9 @@ func (this *ItemGroup) push_clcompile(path, file string) {
 }
 
 func (this *ItemGroup) push_none(path, file string) {
-	this.None = append(this.None, &ClItem{file, path})
+	if strings.TrimSpace(file) != "" {
+		this.None = append(this.None, &ClItem{file, path})
+	}
 }
 
 func (this *ItemGroup) push_filter(path string) {

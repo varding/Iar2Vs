@@ -103,7 +103,10 @@ func (this *Project) add_item_group(files []string) {
 
 //internal use
 func (this *Project) push_none(file string) {
-	this.ItemGroup[3].push_none(file)
+	//去掉空字符串的include
+	if strings.TrimSpace(file) != "" {
+		this.ItemGroup[3].push_none(file)
+	}
 }
 
 //*.h
